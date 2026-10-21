@@ -14,8 +14,10 @@ Send files between a phone and a computer over Wi-Fi. Scan the QR code. No cloud
 
 安装包在 [Releases](https://github.com/licc168/wifisend/releases)。
 
-- Windows：下载 `setup.exe` 或 `.msi`。
-- Mac：Apple 芯片选文件名带 `aarch64` 的 `.dmg`，Intel 芯片选带 `x86_64` 的。
+- Windows：下载 `wifisend_0.1.1_x64-setup.exe` 或 `.msi`。
+- Mac：Apple 芯片选 `wifisend_0.1.1_aarch64.dmg`，Intel 芯片选 `wifisend_0.1.1_x64.dmg`。
+
+安装后窗口标题仍是「快传」。安装包文件名用英文，避免中文名在 Windows 安装器里打包失败。
 
 ## 运行
 
