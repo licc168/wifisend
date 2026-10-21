@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>快传</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="topbar">
+        <div class="brand">
+          <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+            <rect width="32" height="32" rx="8" fill="#0f6e56" />
+            <path d="M8 16h12M16 11l5 5-5 5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <div>
+            <strong>快传</strong>
+            <p id="sub">正在启动局域网…</p>
+          </div>
+        </div>
+        <div class="status" id="status"><i></i><span>准备中</span></div>
+      </header>
+
+      <div class="layout">
+        <aside class="card invite">
+          <h2>手机扫码</h2>
+          <p class="muted">同一 Wi-Fi 下打开浏览器。不经过云，不耗手机流量。</p>
+          <div class="qr" id="qr" aria-label="连接二维码"></div>
+          <p class="url" id="url">正在获取地址…</p>
+          <div class="actions">
+            <button type="button" id="copy">复制链接</button>
+          </div>
+          <div id="more-urls"></div>
+          <p class="warn" id="no-lan" hidden>没有发现局域网地址。请确认电脑连着 Wi-Fi，不然手机扫了也打不开。</p>
+          <details>
+            <summary>手机打不开</summary>
+            <p>两边要连同一个 Wi-Fi，不要用访客网络。电脑弹出防火墙时点允许。这个窗口要一直开着。</p>
+          </details>
+        </aside>
+
+        <main>
+          <section class="card files-card">
+            <div class="section-head">
+              <h2>文件 <span id="count"></span></h2>
+              <div class="actions">
+                <button type="button" id="add-files">添加文件</button>
+                <button type="button" class="ghost" id="add-folder">添加文件夹</button>
+                <button type="button" class="ghost" id="open-dir">打开文件夹</button>
+                <button type="button" class="danger" id="clear">清空</button>
+              </div>
+            </div>
+            <p class="path" id="path"></p>
+            <div id="files" class="file-list"></div>
+          </section>
+        </main>
+      </div>
+    </div>
+    <div id="overlay" hidden>松开即可放入接收夹</div>
+    <div id="toasts" aria-live="polite"></div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

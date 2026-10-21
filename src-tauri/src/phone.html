@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#efece4" />
+    <link rel="icon" href="/favicon.svg" />
+    <title>快传</title>
+    <style>
+      :root {
+        --bg: #efece4;
+        --ink: #1c1915;
+        --muted: #6f675e;
+        --line: #e3dcd0;
+        --card: #fffdf8;
+        --accent: #0f6e56;
+        --accent-soft: #e5f3ed;
+        --warn: #9a3412;
+        --shadow: 0 12px 40px rgba(48, 36, 18, 0.06);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--bg);
+        font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        line-height: 1.45;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0 0 auto 0;
+        height: 4px;
+        background: var(--accent);
+      }
+      .wrap {
+        width: min(720px, 100%);
+        margin: 0 auto;
+        padding: 18px 16px calc(28px + env(safe-area-inset-bottom));
+      }
+      header { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 14px; }
+      .brand { display: flex; gap: 10px; align-items: center; }
+      .mark { width: 36px; height: 36px; flex: none; }
+      h1 { margin: 0; font-size: 22px; letter-spacing: -0.03em; }
+      .sub { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+      .status { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+      .status i { width: 8px; height: 8px; border-radius: 99px; background: #b9b1a4; }
+      .status.on i { background: var(--accent); }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 16px;
+        box-shadow: var(--shadow);
+        margin-bottom: 12px;
+      }
+      .drop { text-align: center; padding: 22px 14px; }
+      .drop h2 { margin: 0 0 6px; font-size: 18px; }
+      .drop p { margin: 0; color: var(--muted); font-size: 14px; }
+      .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; }
+      button, .btn {
+        font: inherit;
+        border: 1px solid transparent;
+        background: var(--accent);
+        color: white;
+        border-radius: 999px;
+        padding: 10px 16px;
+        min-height: 44px;
+        cursor: pointer;
+      }
+      button:disabled { opacity: 0.55; cursor: default; }
+      .ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+      .danger { background: transparent; color: var(--warn); border-color: transparent; }
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
+      .section-head { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+      h2 { margin: 0; font-size: 16px; }
+      .file, .upload {
+        display: grid;
+        grid-template-columns: 44px 1fr;
+        gap: 10px;
+        align-items: center;
+        padding: 12px 0;
+        border-top: 1px solid var(--line);
+      }
+      .file:first-child, .upload:first-child { border-top: 0; }
+      .badge {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 700;
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+      .badge.video { background: #f3e8ff; color: #6b21a8; }
+      .badge.audio { background: #fff4d6; color: #92400e; }
+      .badge.pdf { background: #fee8e2; color: #9a3412; }
+      .badge.archive { background: #e7eef8; color: #1e3a8a; }
+      .name { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .meta { color: var(--muted); font-size: 13px; margin-top: 2px; }
+      .row-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+      .row-actions button { min-height: 36px; padding: 6px 12px; }
+      .bar { height: 4px; background: #e7e1d6; border-radius: 99px; overflow: hidden; margin-top: 8px; }
+      .bar span { display: block; height: 100%; background: var(--accent); width: 0; }
+      .empty { color: var(--muted); padding: 8px 0 2px; }
+      label.device { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: 13px; }
+      input, textarea {
+        font: inherit;
+        font-size: 16px;
+        color: var(--ink);
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px 12px;
+        width: 100%;
+      }
+      details { color: var(--muted); font-size: 14px; }
+      summary { cursor: pointer; color: var(--ink); }
+      details p { margin: 8px 0 0; }
+      #toasts { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); transform: translateX(-50%); display: grid; gap: 8px; z-index: 5; }
+      .toast { background: #1c1915; color: white; border-radius: 999px; padding: 10px 14px; font-size: 14px; }
+      dialog { border: 0; border-radius: 16px; padding: 12px; background: #fffdf8; max-width: min(920px, calc(100vw - 24px)); }
+      dialog::backdrop { background: rgba(20, 16, 12, 0.72); }
+      dialog img, dialog video, dialog audio { max-width: 100%; max-height: 78vh; display: block; }
+      .preview-bar { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+      button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      @media (max-width: 560px) {
+        .file { grid-template-columns: 44px 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="brand">
+          <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+            <rect width="32" height="32" rx="8" fill="#0f6e56" />
+            <path d="M8 16h12M16 11l5 5-5 5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <div>
+            <h1>快传</h1>
+            <p class="sub" id="server-line"></p>
+          </div>
+        </div>
+        <div class="status" id="status"><i></i><span>连接中</span></div>
+      </header>
+
+      <section class="card drop">
+        <h2>把文件发给电脑</h2>
+        <p>选照片、视频或任意文件。传完就能下载，电脑桌面的「快传」文件夹里也会有一份。</p>
+        <div class="actions">
+          <button type="button" id="pick">选择文件</button>
+          <button type="button" class="ghost cam" id="shoot">拍照</button>
+        </div>
+        <input id="file-input" class="visually-hidden" type="file" multiple aria-hidden="true" tabindex="-1" />
+        <input id="camera-input" class="visually-hidden" type="file" accept="image/*" capture="environment" aria-hidden="true" tabindex="-1" />
+      </section>
+
+      <div id="uploads"></div>
+
+      <section class="card">
+        <div class="section-head">
+          <h2>文件 <span id="count"></span></h2>
+          <button type="button" class="ghost danger" id="clear">清空</button>
+        </div>
+        <div id="files"></div>
+      </section>
+
+      <section class="card">
+        <label class="device">这台设备的名字
+          <input id="device" maxlength="40" autocomplete="off" />
+        </label>
+      </section>
+
+      <details class="card">
+        <summary>传不过去？</summary>
+        <p>手机和电脑要连同一个 Wi-Fi。访客网络经常禁止设备互相访问。电脑如果弹出防火墙提示，点允许。窗口不能关。</p>
+      </details>
+    </div>
+
+    <dialog id="preview">
+      <div class="preview-bar"><button type="button" class="ghost" id="close-preview">关闭</button></div>
+      <div id="preview-body"></div>
+    </dialog>
+    <div id="toasts" aria-live="polite"></div>
+
+    <script>
+      window.BOOT = __BOOT_JSON__;
+    </script>
+    <script>
+      const boot = window.BOOT || { token: "", serverName: "", files: [] };
+      const KIND = { image: "图", video: "视频", audio: "音频", pdf: "PDF", archive: "压缩", text: "文本", file: "文件" };
+      const $ = (id) => document.getElementById(id);
+      let files = Array.isArray(boot.files) ? boot.files : [];
+      let seen = null;
+      const uploads = [];
+      let active = 0;
+      let seq = 0;
+
+      function myId() {
+        let id = localStorage.getItem("kuaichuan-id");
+        if (!id) {
+          id = Math.random().toString(36).slice(2, 10);
+          localStorage.setItem("kuaichuan-id", id);
+        }
+        return id;
+      }
+      function defaultDevice() {
+        const ua = navigator.userAgent;
+        if (/iPhone/.test(ua)) return "iPhone";
+        if (/iPad/.test(ua)) return "iPad";
+        if (/Android/.test(ua)) return "Android";
+        if (/Windows/.test(ua)) return "Windows";
+        if (/Mac/.test(ua)) return "Mac";
+        return "手机";
+      }
+      function deviceName() {
+        return $("device").value.trim().slice(0, 40) || defaultDevice();
+      }
+      function withKey(path) {
+        const url = new URL(path, location.origin);
+        url.searchParams.set("k", boot.token || "");
+        return url.pathname + url.search;
+      }
+      function humanSize(bytes) {
+        if (bytes < 1024) return bytes + " B";
+        const units = ["KB", "MB", "GB", "TB"];
+        let value = bytes / 1024;
+        let index = 0;
+        while (value >= 1024 && index < units.length - 1) {
+          value /= 1024;
+          index += 1;
+        }
+        return (value >= 10 ? value.toFixed(0) : value.toFixed(1)) + " " + units[index];
+      }
+      function humanTime(ms) {
+        const date = new Date(ms);
+        const now = new Date();
+        const hm = date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+        if (date.toDateString() === now.toDateString()) {
+          const diff = (Date.now() - ms) / 1000;
+          if (diff < 60) return "刚刚";
+          if (diff < 3600) return Math.floor(diff / 60) + " 分钟前";
+          return "今天 " + hm;
+        }
+        return date.getMonth() + 1 + "月" + date.getDate() + "日 " + hm;
+      }
+      function el(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text != null) node.textContent = text;
+        return node;
+      }
+      function toast(text) {
+        const node = el("div", "toast", text);
+        $("toasts").append(node);
+        setTimeout(() => node.remove(), 2600);
+      }
+      function setStatus(online) {
+        const node = $("status");
+        node.classList.toggle("on", online);
+        node.querySelector("span").textContent = online ? "已连接" : "连接中断";
+      }
+      function dlPath(name, inline) {
+        return withKey("/dl/" + encodeURIComponent(name) + (inline ? "?inline=1" : ""));
+      }
+
+      function renderFiles() {
+        const box = $("files");
+        const top = box.scrollTop;
+        box.replaceChildren();
+        $("count").textContent = files.length ? String(files.length) : "";
+        $("clear").disabled = files.length === 0;
+        if (!files.length) {
+          box.append(el("p", "empty", "还没有文件。上传之后，这里会出现下载按钮。"));
+          return;
+        }
+        for (const file of files) {
+          const row = el("article", "file");
+          row.append(el("div", "badge " + file.kind, KIND[file.kind] || "文件"));
+          const body = el("div");
+          const name = el("div", "name", file.name);
+          name.title = file.name;
+          if (file.preview) name.style.cursor = "pointer";
+          const from = file.from ? "来自 " + file.from : "接收夹";
+          body.append(name, el("div", "meta", humanSize(file.size) + " · " + from + " · " + humanTime(file.time)));
+          const actions = el("div", "row-actions");
+          const download = el("button", "", "下载");
+          download.type = "button";
+          download.addEventListener("click", () => saveFile(file));
+          actions.append(download);
+          if (file.preview) {
+            const view = el("button", "ghost", "预览");
+            view.type = "button";
+            view.addEventListener("click", () => openPreview(file));
+            actions.append(view);
+          }
+          const remove = el("button", "danger", "删除");
+          remove.type = "button";
+          remove.addEventListener("click", () => removeFile(file));
+          actions.append(remove);
+          body.append(actions);
+          if (file.preview) name.addEventListener("click", () => openPreview(file));
+          row.append(body);
+          box.append(row);
+        }
+        box.scrollTop = top;
+        document.title = "快传 · " + files.length;
+      }
+
+      function renderUploads() {
+        const box = $("uploads");
+        box.replaceChildren();
+        const running = uploads.filter((item) => item.status !== "done");
+        if (!running.length) return;
+        const card = el("section", "card");
+        card.append(el("h2", "", "正在发送"));
+        for (const item of running) {
+          const row = el("div", "upload");
+          row.append(el("div", "badge", "传"));
+          const body = el("div");
+          body.append(el("div", "name", item.file.name));
+          const meta = el("div", "meta");
+          if (item.status === "error") meta.textContent = item.error || "发送失败";
+          else if (item.total) meta.textContent = Math.round(item.progress * 100) + "% · " + humanSize(item.loaded || 0) + " / " + humanSize(item.total);
+          else meta.textContent = "等待发送";
+          body.append(meta);
+          const bar = el("div", "bar");
+          const span = document.createElement("span");
+          span.style.width = Math.round((item.progress || 0) * 100) + "%";
+          bar.append(span);
+          body.append(bar);
+          if (item.status === "error") {
+            const retry = el("button", "ghost", "重试");
+            retry.type = "button";
+            retry.addEventListener("click", () => {
+              item.status = "wait";
+              item.progress = 0;
+              item.error = "";
+              pump();
+            });
+            body.append(retry);
+          }
+          row.append(body);
+          card.append(row);
+        }
+        box.append(card);
+      }
+
+      function applyFiles(next, announce) {
+        if (announce && seen) {
+          const old = new Set(seen);
+          for (const file of next) {
+            if (!old.has(file.name) && file.clientId !== myId()) toast("收到 " + file.name);
+          }
+        }
+        seen = next.map((file) => file.name);
+        files = next;
+        renderFiles();
+      }
+
+      function enqueue(list) {
+        for (const file of list) {
+          uploads.push({ id: ++seq, file, progress: 0, loaded: 0, total: file.size || 0, status: "wait", error: "" });
+        }
+        renderUploads();
+        pump();
+      }
+      function pump() {
+        while (active < 2) {
+          const next = uploads.find((item) => item.status === "wait");
+          if (!next) return;
+          active += 1;
+          next.status = "up";
+          next.started = Date.now();
+          sendOne(next).finally(() => {
+            active -= 1;
+            pump();
+          });
+        }
+      }
+      function sendOne(item) {
+        return new Promise((resolve) => {
+          const form = new FormData();
+          form.append("device", deviceName());
+          form.append("clientId", myId());
+          form.append("file", item.file, item.file.name);
+          const xhr = new XMLHttpRequest();
+          xhr.open("POST", withKey("/api/upload"));
+          xhr.upload.onprogress = (event) => {
+            if (!event.lengthComputable) return;
+            item.loaded = event.loaded;
+            item.total = event.total;
+            item.progress = event.total ? event.loaded / event.total : 0;
+            renderUploads();
+          };
+          xhr.onload = () => {
+            let data = {};
+            try { data = JSON.parse(xhr.responseText || "{}"); } catch (err) { data = {}; }
+            if (xhr.status >= 200 && xhr.status < 300 && data.ok) {
+              item.status = "done";
+              const known = new Set(files.map((file) => file.name));
+              for (const file of data.files || []) {
+                if (!known.has(file.name)) files.unshift(file);
+              }
+              seen = files.map((file) => file.name);
+              renderFiles();
+              toast("已上传，可以下载了");
+            } else {
+              item.status = "error";
+              item.error = data.error || "发送失败";
+            }
+            renderUploads();
+            resolve();
+          };
+          xhr.onerror = () => {
+            item.status = "error";
+            item.error = "网络中断";
+            renderUploads();
+            resolve();
+          };
+          xhr.send(form);
+        });
+      }
+      function saveFile(file) {
+        const link = document.createElement("a");
+        link.href = dlPath(file.name, false);
+        link.download = file.name;
+        document.body.append(link);
+        link.click();
+        link.remove();
+      }
+      function openPreview(file) {
+        const body = $("preview-body");
+        body.replaceChildren();
+        const url = dlPath(file.name, true);
+        if (file.kind === "image") {
+          const image = el("img");
+          image.src = url;
+          image.alt = file.name;
+          body.append(image);
+        } else if (file.kind === "video") {
+          const video = el("video");
+          video.src = url;
+          video.controls = true;
+          video.playsInline = true;
+          body.append(video);
+        } else if (file.kind === "audio") {
+          const audio = el("audio");
+          audio.src = url;
+          audio.controls = true;
+          body.append(audio);
+        } else {
+          return;
+        }
+        $("preview").showModal();
+      }
+      async function removeFile(file) {
+        if (!confirm("删除「" + file.name + "」？电脑上的这份也会删掉。")) return;
+        const response = await fetch(withKey("/api/delete"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: file.name }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) {
+          toast(data.error || "删除失败");
+          return;
+        }
+        files = files.filter((item) => item.name !== file.name);
+        seen = files.map((item) => item.name);
+        renderFiles();
+      }
+      async function refresh() {
+        try {
+          const response = await fetch(withKey("/api/files"), { cache: "no-store" });
+          if (!response.ok) throw new Error("刷新失败");
+          const data = await response.json();
+          applyFiles(data.files || [], true);
+          setStatus(true);
+        } catch (err) {
+          setStatus(false);
+        }
+      }
+
+      $("server-line").textContent = (boot.serverName || "电脑") + " · 同一 Wi-Fi";
+      const savedDevice = localStorage.getItem("kuaichuan-device");
+      $("device").value = savedDevice || defaultDevice();
+      $("device").addEventListener("change", () => {
+        localStorage.setItem("kuaichuan-device", deviceName());
+      });
+      $("pick").addEventListener("click", () => $("file-input").click());
+      $("shoot").addEventListener("click", () => $("camera-input").click());
+      $("file-input").addEventListener("change", () => {
+        enqueue([...$("file-input").files]);
+        $("file-input").value = "";
+      });
+      $("camera-input").addEventListener("change", () => {
+        enqueue([...$("camera-input").files]);
+        $("camera-input").value = "";
+      });
+      $("clear").addEventListener("click", async () => {
+        if (!files.length) return;
+        if (!confirm("清空全部文件？电脑接收文件夹里的文件也会删除。")) return;
+        const response = await fetch(withKey("/api/clear"), { method: "POST" });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) {
+          toast(data.error || "清空失败");
+          return;
+        }
+        applyFiles([], false);
+      });
+      $("close-preview").addEventListener("click", () => $("preview").close());
+      $("preview").addEventListener("click", (event) => {
+        if (event.target === $("preview")) $("preview").close();
+      });
+      $("preview").addEventListener("close", () => $("preview-body").replaceChildren());
+      window.addEventListener("beforeunload", (event) => {
+        if (active > 0) {
+          event.preventDefault();
+          event.returnValue = "";
+        }
+      });
+      applyFiles(files, false);
+      refresh();
+      setInterval(refresh, 1500);
+      setInterval(renderFiles, 30000);
+    </script>
+  </body>
+</html>
