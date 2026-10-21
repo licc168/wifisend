@@ -10,6 +10,13 @@ Send files between a phone and a computer over Wi-Fi. Scan the QR code. No cloud
 
 手机和电脑要连同一个 Wi-Fi，不要用访客网络。窗口要一直开着。电脑弹出防火墙时点允许。
 
+## 下载
+
+安装包在 [Releases](https://github.com/licc168/wifisend/releases)。
+
+- Windows：下载 `setup.exe` 或 `.msi`。
+- Mac：Apple 芯片选文件名带 `aarch64` 的 `.dmg`，Intel 芯片选带 `x86_64` 的。
+
 ## 运行
 
 双击 `启动.bat`，或在这个目录执行：

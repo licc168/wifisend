@@ -1,0 +1,61 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            args: ""
+            rust-targets: ""
+          - os: macos-latest
+            args: "--target aarch64-apple-darwin"
+            rust-targets: aarch64-apple-darwin
+          - os: macos-latest
+            args: "--target x86_64-apple-darwin"
+            rust-targets: x86_64-apple-darwin
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: add Rust target
+        if: matrix.rust-targets != ''
+        run: rustup target add ${{ matrix.rust-targets }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - run: npm install
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "快传 ${{ github.ref_name }}"
+          releaseBody: |
+            同一 Wi-Fi 下，电脑打开快传，手机扫二维码即可互传文件。
+
+            - Windows：下载以 `setup.exe` 或 `.msi` 结尾的安装包。
+            - macOS：Apple 芯片下载文件名里带 `aarch64` 的 `.dmg`，Intel 芯片下载带 `x86_64` 的 `.dmg`。
+
+            安装包没有代码签名。Windows 若出现 SmartScreen，选择仍要运行。macOS 若提示无法验证开发者，在「系统设置 → 隐私与安全性」里选择仍要打开。
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}
