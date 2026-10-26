@@ -843,6 +843,29 @@ mod tests {
         assert_eq!(downloaded.status(), StatusCode::OK);
         assert_eq!(bytes_of(downloaded).await, payload);
 
+        let inline = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri(format!(
+                        "/dl/{}?k={token}&inline=1",
+                        super::percent_encode(&name)
+                    ))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(inline.status(), StatusCode::OK);
+        assert_eq!(
+            inline
+                .headers()
+                .get(header::CONTENT_TYPE)
+                .and_then(|value| value.to_str().ok()),
+            Some("text/plain; charset=utf-8")
+        );
+        assert_eq!(bytes_of(inline).await, payload);
+
         let outside = app
             .clone()
             .oneshot(

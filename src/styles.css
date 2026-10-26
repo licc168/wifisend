@@ -130,6 +130,20 @@ summary { cursor: pointer; color: var(--ink); }
   display: flex;
   flex-direction: column;
 }
+.composer { display: grid; gap: 8px; margin-top: 12px; }
+.composer textarea {
+  width: 100%;
+  min-height: 84px;
+  resize: vertical;
+  font: inherit;
+  color: var(--ink);
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.composer textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.composer-actions { display: flex; gap: 8px; }
 .section-head {
   display: flex;
   justify-content: space-between;

@@ -247,6 +247,49 @@ impl Hub {
         Ok(saved)
     }
 
+    pub fn save_text(&self, text: &str, from: &str, client_id: &str) -> Result<FileItem, String> {
+        if text.trim().is_empty() {
+            return Err("没有可以发送的文字".into());
+        }
+        const MAX_TEXT: usize = 2 * 1024 * 1024;
+        if text.len() > MAX_TEXT {
+            return Err("文字太长了，最多 2 MB".into());
+        }
+        let name = self.reserve_name("文字.txt");
+        let dest = self.share_dir.join(&name);
+        if let Err(err) = fs::write(&dest, text.as_bytes()) {
+            self.unreserve(&name);
+            let _ = fs::remove_file(&dest);
+            eprintln!("保存文字失败: {err}");
+            return Err(io_message(&err));
+        }
+        Ok(self.remember_upload(&name, from, client_id))
+    }
+
+    pub fn read_text(&self, name: &str) -> Result<String, String> {
+        let path = resolve_file(&self.share_dir, name).ok_or_else(|| "没有这个文件".to_string())?;
+        let file_name = path
+            .file_name()
+            .map(|value| value.to_string_lossy().to_string())
+            .unwrap_or_else(|| name.to_string());
+        if classify(&file_name).0 != "text" {
+            return Err("这不是文字文件".into());
+        }
+        let meta = fs::metadata(&path).map_err(|_| "没有这个文件".to_string())?;
+        const MAX_TEXT: u64 = 2 * 1024 * 1024;
+        if meta.len() > MAX_TEXT {
+            return Err("文字太长，请直接打开文件".into());
+        }
+        let bytes = fs::read(&path).map_err(|err| {
+            eprintln!("读取文字失败 {}: {err}", path.display());
+            io_message(&err)
+        })?;
+        let content = bytes
+            .strip_prefix(&[0xEF, 0xBB, 0xBF])
+            .unwrap_or(bytes.as_slice());
+        String::from_utf8(content.to_vec()).map_err(|_| "这个文件不是 UTF-8 文字".to_string())
+    }
+
     pub fn remember_upload(&self, name: &str, from: &str, client_id: &str) -> FileItem {
         let meta = MetaEntry {
             from: from.to_string(),
@@ -438,7 +481,7 @@ pub fn classify(name: &str) -> (&'static str, bool) {
         "mp3" | "wav" | "m4a" | "aac" | "ogg" | "flac" => ("audio", true),
         "pdf" => ("pdf", false),
         "zip" | "7z" | "rar" | "tar" | "gz" => ("archive", false),
-        "txt" | "md" | "json" | "csv" | "log" => ("text", false),
+        "txt" | "md" | "json" | "csv" | "log" => ("text", true),
         _ => ("file", false),
     }
 }
@@ -469,6 +512,7 @@ pub fn mime_for(name: &str, preview: bool) -> &'static str {
         "m4a" | "aac" => "audio/mp4",
         "ogg" => "audio/ogg",
         "flac" => "audio/flac",
+        "txt" | "md" | "json" | "csv" | "log" => "text/plain; charset=utf-8",
         _ => "application/octet-stream",
     }
 }
@@ -608,6 +652,27 @@ mod tests {
         assert_eq!(safe_name("   "), "file");
         assert_eq!(safe_name("照片.jpg"), "照片.jpg");
         assert_eq!(safe_name(".htaccess"), "htaccess");
+    }
+
+    #[test]
+    fn save_text_roundtrip_and_rejects_blank() {
+        let dir = std::env::temp_dir().join(format!("kuaichuan-text-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(dir.join("share")).unwrap();
+        let hub = Hub::new(dir.join("share"), dir.join("meta.json"), "PC".into());
+        assert!(hub.save_text("   \n", "这台电脑", "desktop").is_err());
+        let item = hub.save_text("你好\n第二行", "这台电脑", "desktop").unwrap();
+        assert_eq!(item.name, "文字.txt");
+        assert_eq!(item.kind, "text");
+        assert!(item.preview);
+        assert_eq!(hub.read_text("文字.txt").unwrap(), "你好\n第二行");
+        let again = hub.save_text("more", "这台电脑", "desktop").unwrap();
+        assert_eq!(again.name, "文字 (2).txt");
+        fs::write(dir.join("share").join("文字.txt"), [0xEF, 0xBB, 0xBF, b'A', b'B']).unwrap();
+        assert_eq!(hub.read_text("文字.txt").unwrap(), "AB");
+        fs::write(dir.join("share").join("照片.jpg"), b"not-text").unwrap();
+        assert!(hub.read_text("照片.jpg").is_err());
+        assert!(hub.read_text("../meta.json").is_err());
+        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]

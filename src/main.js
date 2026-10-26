@@ -60,7 +60,7 @@ function setStatus(text, online) {
   node.querySelector("span").textContent = text;
 }
 
-async function copyText(text) {
+async function writeClipboard(text) {
   try {
     await navigator.clipboard.writeText(text);
   } catch (err) {
@@ -71,7 +71,51 @@ async function copyText(text) {
     document.execCommand("copy");
     area.remove();
   }
+}
+
+async function copyText(text) {
+  await writeClipboard(text);
   toast("链接已复制");
+}
+
+const MAX_TEXT = 2 * 1024 * 1024;
+let savingText = false;
+
+function textBytes(text) {
+  return new TextEncoder().encode(text).length;
+}
+
+async function submitText(text) {
+  if (!text || !text.trim()) {
+    toast("没有可以发送的文字");
+    return;
+  }
+  if (textBytes(text) > MAX_TEXT) {
+    toast("文字太长了，最多 2 MB");
+    return;
+  }
+  if (savingText) return;
+  savingText = true;
+  try {
+    const item = await invoke("save_text", { text });
+    $("paste-box").value = "";
+    toast("已放入 " + item.name);
+    await refresh();
+  } catch (err) {
+    toast(String(err));
+  } finally {
+    savingText = false;
+  }
+}
+
+async function copyFileText(file) {
+  try {
+    const text = await invoke("read_text_file", { name: file.name });
+    await writeClipboard(text);
+    toast("文字已复制，可以粘贴了");
+  } catch (err) {
+    toast(String(err));
+  }
 }
 
 function qrMarkup(svg) {
@@ -119,7 +163,7 @@ function renderFiles() {
   $("count").textContent = files.length ? String(files.length) : "";
   $("clear").disabled = files.length === 0;
   if (!files.length) {
-    box.append(el("p", "empty", "把文件拖进窗口，或点「添加文件」。手机扫码后就能下载。"));
+    box.append(el("p", "empty", "把文件拖进窗口，粘贴文字，或点「添加文件」。手机扫码后就能下载。"));
     return;
   }
   for (const file of files) {
@@ -131,9 +175,18 @@ function renderFiles() {
     const from = file.from ? "来自 " + file.from : "接收夹";
     body.append(name, el("div", "meta", humanSize(file.size) + " · " + from + " · " + humanTime(file.time)));
     const actions = el("div", "row-actions");
+    if (file.kind === "text") {
+      const copy = el("button", "ghost", "复制");
+      copy.type = "button";
+      copy.addEventListener("click", () => copyFileText(file));
+      actions.append(copy);
+    }
     const open = el("button", "ghost", "打开");
     open.type = "button";
     open.addEventListener("click", () => invoke("open_file", { name: file.name }).catch((err) => toast(String(err))));
+    const reveal = el("button", "ghost", "所在目录");
+    reveal.type = "button";
+    reveal.addEventListener("click", () => invoke("reveal_file", { name: file.name }).catch((err) => toast(String(err))));
     const remove = el("button", "danger", "删除");
     remove.type = "button";
     remove.addEventListener("click", async () => {
@@ -145,7 +198,7 @@ function renderFiles() {
         toast(String(err));
       }
     });
-    actions.append(open, remove);
+    actions.append(open, reveal, remove);
     row.append(body, actions);
     box.append(row);
   }
@@ -224,6 +277,23 @@ async function setupDrop() {
 window.addEventListener("DOMContentLoaded", async () => {
   $("copy").addEventListener("click", () => {
     if (session) copyText(session.url);
+  });
+  $("send-text").addEventListener("click", () => submitText($("paste-box").value));
+  $("paste-box").addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+      event.preventDefault();
+      submitText($("paste-box").value);
+    }
+  });
+  document.addEventListener("paste", (event) => {
+    const target = event.target;
+    if (target && target.closest && target.closest("input, textarea")) return;
+    const data = event.clipboardData;
+    if (!data || (data.files && data.files.length)) return;
+    const pasted = data.getData("text/plain");
+    if (!pasted || !pasted.trim()) return;
+    event.preventDefault();
+    submitText(pasted);
   });
   $("add-files").addEventListener("click", async () => {
     try {
